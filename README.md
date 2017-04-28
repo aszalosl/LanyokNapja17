@@ -80,6 +80,8 @@ Az ```ul``` egy felsorolásra utal, a mögötte álló ```guests``` egy osztály
 
 Az itt található _for_ ciklus igencsak eltér a korábban láthatóaktól. Végigfut a két mintabejegyzésen, és a legutolsó sor szerinti formázással jeleníti meg azokat egy felsorolás belsejében.
 
+Annak érdekében, hogy az előbbi függvényt használatba vehessük, valamint, hogy kihasználhassuk az űrlapok fejlettebb formázási lehetőségeit, át kell írnunk a ```home``` függvényt:
+
     (defn home [& [name message error]]
       (layout/common 
         [:h1 "Guestbook"]
@@ -92,6 +94,26 @@ Az itt található _for_ ciklus igencsak eltér a korábban láthatóaktól. Vé
           [:p "Message"] (text-area {:rows 10 :cols 40} "message" message)
           [:br]
           (submit-button "comment"))))
+
+Az űrlap definíciójában szerepelt, hogy ez is a _localhost:3000_ címen kerül feldolgozásra, csupán egy más hozzáféréssel. Ennek megfelelően a fájl utolsó két sorát frissíteni kell, megadva a feldolgozó függvényt:
+
+    (defroutes home-routes
+      (GET "/" [] (home))
+      (POST "/" [name message] (save-message name message)))
+
+Ez a feldolgozó függvény még hiányzik, szúrjuk be a _home_ függvény és az előbbi hozzárendelések közé!
+
+    (defn save-message [name message]
+      (cond
+        (empty? name) (home name message "Some dummy forgot to leave a name")
+        (empty? message) (home name message "Don't you have something to say?")
+        :else
+          (do
+            (println name message)
+            (home))))
+
+Ez a függvény alapjában véve egy elágazás, az első két feltétel azt ellenőrni, hogy nem maradt-e valami üresen az űrlapban, 
+
 
 # Próbálkozás
 A mintafájlok a [https://arato.inf.unideb.hu/aszalos.laszlo/lanyok.html](https://arato.inf.unideb.hu/aszalos.laszlo/lanyok.html)
