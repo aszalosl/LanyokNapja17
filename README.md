@@ -27,13 +27,33 @@ A Leinigen több fajta sablont is ismer, ezek közül az adott feladathoz legink
 
     lein new compojure-app guestbook
     
+A _lein_ program egyik nagy hátránya, hogy lassan indul el. Viszont szerencsére ritkán kell elindítani egy hagyományos fejlesztés során.  
 A _guestbook_ a vendégkönyv angol megfelelője. Miután a programfejlesztés nemzetközivé vált, ha egy magyar elnevezésekkel (változókkal, függvénynevekkel, stb.) megírt program továbbfejlesztésébe vonnánk be kínai, indiai vagy éppen orosz fejlesztőket, akkor első dolgunk az lehetne, hogy már a kész program szövegét egy közös nyelvre kellene lefordítani. Ha már angolul készül el az első verzió is, ezt a pluszmunkát elkerülhetjük. Lássuk mit csináltunk eddig! Lépjünk be a legenerált alkönyvtárba (```cd guestbook```), és adjuk ki az alábbi parancsot:
 
     lein ring server
-    
+
+
 Ezzel elindult a gépünkön egy webszerver, és az elinduló böngészőnkben már láthatjuk is a végeredményt, ami természetesen elég soványka. De mit várnánk el egy sablontól?
 
-   
+Mindkét parancs indítása után a _lein_ letölti azokat a kisebb-nagyobb programkönyvtárakat, melyekre a webszerver futásához szükség van. Természetesen egy programkönyvtárat csak egyszer tölt le, a továbbiakban ezek már megtalálhatóak a gépünkön. 
+
+## Az oldal átírása
+
+A sablon nyújtotta lehetőségeken túl kell lépni, hogy elérjük a célunkat. 
+Nem árt pár szót ejteni a generált alkönyvtárrendszerről. A _resources_ könyvtárba kerül az oldalak kinézetét befolyásoló minden fájl: a megjelenítendő képek, az oldalstílusokat meghatározó CSS állományok, illetve a kliens oldalon futó Javascript programocskák. Ha az elkészült programunkat valahol üzembe helyeznénk, és ehhez lefordítanánk és összecsomagolnánk, az a _target_ könyvtárba kerülne. Az _src_ könyvtárban található maga a forrás, amit hamarosan kiegészítünk, míg a _test_ alkönyvtárba kerülnek azok a különféle tesztek, melyekkel az elkészült programunk egyes részeit tesztelhetjük, megbizonyosodva, hogy egyes továbbfejlesztések nem rontottak-e el valami korábban még működőképes részt.
+
+Lépjünk be a ```src/guestbook/routes``` könyvtárba. Itt található meg az egyes webcímekhez hozzákapcsolt funkcionalitás. Azaz nevezetesen ha csak a webszerverünk címét írnánk be (ami most ```localhos:3000```), akkor szeretnénk az üzeneteket látni. Mindez a ```home.clj``` fájlban van definiálva.  A fájl első három sora a felhasznált programkönyvtárakat adja meg, míg az utolsó kettő az előbb említett hozzárendelést adja meg. Nevezetesen, ha semmi nem szerepel az előbbi cím után, akkor a ```home``` függvényt kell végrehajtani. 
+
+    (defn home []
+      (layout/common 
+        [:h1 "Guestbook"]
+        [:p "Welcome to my guestbook"]
+        [:hr]
+        [:form
+          [:p "Name"]
+          [:input]
+          [:p "Message"]
+          [:textarea {:rows 10 :cols 40}]]))
 
 # Próbálkozás
 A mintafájlok a [https://arato.inf.unideb.hu/aszalos.laszlo/lanyok.html](https://arato.inf.unideb.hu/aszalos.laszlo/lanyok.html)
