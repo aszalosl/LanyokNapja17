@@ -28,10 +28,9 @@ A Leinigen több fajta sablont is ismer, ezek közül az adott feladathoz legink
     lein new compojure-app guestbook
     
 A _lein_ program egyik nagy hátránya, hogy lassan indul el. Viszont szerencsére ritkán kell elindítani egy hagyományos fejlesztés során.  
-A _guestbook_ a vendégkönyv angol megfelelője. Miután a programfejlesztés nemzetközivé vált, ha egy magyar elnevezésekkel (változókkal, függvénynevekkel, stb.) megírt program továbbfejlesztésébe vonnánk be kínai, indiai vagy éppen orosz fejlesztőket, akkor első dolgunk az lehetne, hogy már a kész program szövegét egy közös nyelvre kellene lefordítani. Ha már angolul készül el az első verzió is, ezt a pluszmunkát elkerülhetjük. Lássuk mit csináltunk eddig! Lépjünk be a legenerált alkönyvtárba (```cd guestbook```), és adjuk ki az alábbi parancsot:
+A _guestbook_ a vendégkönyv angol megfelelője. Miután a programfejlesztés nemzetközivé vált, ha egy magyar elnevezésekkel (változókkal, függvénynevekkel, stb.) megírt program továbbfejlesztésébe vonnánk be kínai, indiai vagy éppen orosz fejlesztőket, akkor első dolgunk az lehetne, hogy már a kész program szövegét egy közös nyelvre kellene lefordítani. Ha már angolul készül el az első verzió is, ezt a pluszmunkát elkerülhetjük. Lássuk mit csináltunk eddig! Lépjünk be a generált alkönyvtárba (```cd guestbook```), és adjuk ki az alábbi parancsot:
 
     lein ring server
-
 
 Ezzel elindult a gépünkön egy webszerver, és az elinduló böngészőnkben már láthatjuk is a végeredményt, ami természetesen elég soványka. De mit várnánk el egy sablontól?
 
@@ -42,7 +41,8 @@ Mindkét parancs indítása után a _lein_ letölti azokat a kisebb-nagyobb prog
 A sablon nyújtotta lehetőségeken túl kell lépni, hogy elérjük a célunkat. 
 Nem árt pár szót ejteni a generált alkönyvtárrendszerről. A _resources_ könyvtárba kerül az oldalak kinézetét befolyásoló minden fájl: a megjelenítendő képek, az oldalstílusokat meghatározó CSS állományok, illetve a kliens oldalon futó Javascript programocskák. Ha az elkészült programunkat valahol üzembe helyeznénk, és ehhez lefordítanánk és összecsomagolnánk, az a _target_ könyvtárba kerülne. Az _src_ könyvtárban található maga a forrás, amit hamarosan kiegészítünk, míg a _test_ alkönyvtárba kerülnek azok a különféle tesztek, melyekkel az elkészült programunk egyes részeit tesztelhetjük, megbizonyosodva, hogy egyes továbbfejlesztések nem rontottak-e el valami korábban még működőképes részt.
 
-Lépjünk be a ```src/guestbook/routes``` könyvtárba. Itt található meg az egyes webcímekhez hozzákapcsolt funkcionalitás. Azaz nevezetesen ha csak a webszerverünk címét írnánk be (ami most ```localhos:3000```), akkor szeretnénk az üzeneteket látni. Mindez a ```home.clj``` fájlban van definiálva.  A fájl első három sora a felhasznált programkönyvtárakat adja meg, míg az utolsó kettő az előbb említett hozzárendelést adja meg. Nevezetesen, ha semmi nem szerepel az előbbi cím után, akkor a ```home``` függvényt kell végrehajtani. 
+Lépjünk be a ```src/guestbook/routes``` könyvtárba. Itt található meg az egyes webcímekhez hozzákapcsolt funkcionalitás. Azaz nevezetesen ha csak a webszerverünk címét írnánk be (ami most ```localhos:3000```), akkor szeretnénk az üzeneteket látni. Mindez a ```home.clj``` fájlban van definiálva.  A fájl első három sora a felhasznált programkönyvtárakat adja meg, míg az utolsó kettő az előbb említett hozzárendelést adja meg. Nevezetesen, ha semmi nem szerepel az előbbi cím után, akkor a ```home``` függvényt kell végrehajtani. A korábbi kétsoros alakot cseréljük le az alábbira:
+
 
     (defn home []
       (layout/common 
@@ -54,6 +54,44 @@ Lépjünk be a ```src/guestbook/routes``` könyvtárba. Itt található meg az e
           [:input]
           [:p "Message"]
           [:textarea {:rows 10 :cols 40}]]))
+
+Ha valaki tanult egy kis webszerkesztést, akkor felismer pár kulcsszót (h1, p, form, input, stb) az alábbi részben, bár itt nem kacsacsőrök között szerepel, mint egy HTML forrásban, sőt még lezáró tagok sem találhatóak. A Hiccup könyvtár lehetővé teszi az előbb látható speciális nyelv használatát, ami véleményem szerint sokkal kényelmesebb, mint egy sablonrendszer használata (mint például a [Smarty](http://www.smarty.net/), a [mustache](https://mustache.github.io/), a [Jade](https://www.npmjs.com/package/jade) vagy a [Jinja](http://jinja.pocoo.org/), hogy csak párat említsek a több száz közül).
+
+Frissítve a böngészőkben az oldalunkat (Ring webszerver újraindítása nélkül) már az előbbi függvénynek megfelelően jelenik meg az oldal. Ha valaki gondolja, az angol nyelvű szöveget nyugodtan lecserélheti magyarra, vagy a bekezdés helyett alcímet készíthet az üdvözlő szövegből.
+
+Az oldalon a vonal alatt található űrlapba írhatunk, csak elküldeni nincs lehetőségünk, hiányzik a megfelelő nyomógomb. Ezért egy fokkal jobban kezelhető programcsomagot (hiccup.form) veszünk igénybe. Viszont emiatt a ```home.clj``` első három sorát le kell cserélnünk az alábbira:
+
+    (ns guestbook.routes.home
+      (:require [compojure.core :refer :all]
+                [guestbook.views.layout :as layout]
+                [hiccup.form :refer :all]))
+
+Annak érdekében, hogy tesztelhessük az oldalunkat, elhelyezünk pár bejegyzést. Az alábbi függvény ezeket a bejegyzéseket tartalmazza, illetve ezek megjelenítésének módját.
+
+    (defn show-guests []
+      [:ul.guests
+        (for [{:keys [message name timestamp]}
+               [{:message "Howdy" :name "Bob" :timestamp nil}
+                {:message "Hello" :name "Bob" :timestamp nil}]]
+          [:li
+            [:blockquote message] [:p "-" [:cite name]] [:time timestamp]])])
+
+Az ```ul``` egy felsorolásra utal, a mögötte álló ```guests``` egy osztályt definiál, melyet majd a grafikai stílusok megadásánál lehet felhasználni, hogy más kinézete legyen ennek a résznek, mint a honlap többi részének.
+
+Az itt található _for_ ciklus igencsak eltér a korábban láthatóaktól. Végigfut a két mintabejegyzésen, és a legutolsó sor szerinti formázással jeleníti meg azokat egy felsorolás belsejében.
+
+    (defn home [& [name message error]]
+      (layout/common 
+        [:h1 "Guestbook"]
+        [:p "Welcome to my guestbook"]
+        [:p error]
+        (show-guests)
+        [:hr]
+        (form-to [:post "/"]
+          [:p "Name"] (text-field "name" name)
+          [:p "Message"] (text-area {:rows 10 :cols 40} "message" message)
+          [:br]
+          (submit-button "comment"))))
 
 # Próbálkozás
 A mintafájlok a [https://arato.inf.unideb.hu/aszalos.laszlo/lanyok.html](https://arato.inf.unideb.hu/aszalos.laszlo/lanyok.html)
