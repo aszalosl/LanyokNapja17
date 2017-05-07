@@ -59,6 +59,8 @@ Ha valaki tanult egy kis webszerkesztést, akkor felismer pár kulcsszót (h1, p
 
 Frissítve a böngészőkben az oldalunkat (Ring webszerver újraindítása nélkül) már az előbbi függvénynek megfelelően jelenik meg az oldal. Ha valaki gondolja, az angol nyelvű szöveget nyugodtan lecserélheti magyarra, vagy a bekezdés helyett alcímet készíthet az üdvözlő szövegből.
 
+## Az űrlap továbbfejlesztése
+
 Az oldalon a vonal alatt található űrlapba írhatunk, csak elküldeni nincs lehetőségünk, hiányzik a megfelelő nyomógomb. Ezért egy fokkal jobban kezelhető programcsomagot (hiccup.form) veszünk igénybe. Viszont emiatt a ```home.clj``` első három sorát le kell cserélnünk az alábbira:
 
     (ns guestbook.routes.home
@@ -112,9 +114,105 @@ Ez a feldolgozó függvény még hiányzik, szúrjuk be a _home_ függvény és 
             (println name message)
             (home))))
 
-Ez a függvény alapjában véve egy elágazás, az első két feltétel azt ellenőrni, hogy nem maradt-e valami üresen az űrlapban, 
+Ez a függvény alapjában véve egy elágazást tartalmaz, ebben az első két feltétel azt ellenőrni, hogy nem maradt-e valami üresen az űrlapban, és ha igen, akkor ezzal az információval, valamint a megadott adatokkal jeleníti meg az oldalunkat. Ez lehetőséget ad arra, hogy a felhasználó megadhassa a hiányzó adatot. Ha nincs hiányzó adat, akkor pedig kiírja az űrlapon megadott nevet és üzenetet, s majd meghívja az oldalunkat megjelenítő függvényt.
 
+Ha kipróbáljuk a új weboldalunkat, akkor a hibaüzenetek látszódnak, viszont a megadott adatok nem jelennek meg. Nem is csoda, mert a ```println``` nem a böngészőben, hanem a konzolra ír. 
 
-# Próbálkozás
-A mintafájlok a [https://arato.inf.unideb.hu/aszalos.laszlo/lanyok.html](https://arato.inf.unideb.hu/aszalos.laszlo/lanyok.html)
-oldalon találhatóak.
+A felhasználó által megadott adatok nem kerülnek be a mintaként megadott üzenetek közé. Ahhoz, hogy ezt elérjük, szintet kell lépnünk, s üzembe kell helyeznünk egy adatbázist, mely majd az üzeneteket fogja tárolni.
+
+## Adatbázis hozzáadása
+
+A korábbiakhoz képest további könyvtárakra is szükség van az adatbázisunk használatához. Ehhez a külső alkönyvtárban található ```project.cls``` fájlt kell módosítani. Lényegében az alsó két sort kell beszúrnunk:
+
+    :dependencies [[org.clojure/clojure "1.8.0"]
+                   [compojure "1.5.2"]
+                   [hiccup "1.0.5"]
+                   [ring-server "0.4.0"]
+                   ;; adatbázis
+                   [org.clojure/java.jdbc "0.2.3"]
+                   [org.xerial/sqlite-jdbc "3.7.2"]]
+                   
+Ezt követően elkezdhetjük az adatbázisunkat kezelő függvényeket írni. Ezek a kvázi szabványnak megfelelően az ```src/guestbook/models``` alkönyvtárban kapnak helyet, mondjuk egy ```db.clj``` fájlban.
+
+Először is fel kell használnunk az előzőleg megadott könyvtárakat, majd meg kell adnunk azt a fájlt (```db.sq3```), mely az adatbázist fogja tartalmazni. Erre a fájlra a későbbiekben ```db``` néven hivatkozunk.
+
+    (ns guestbook.models.db
+      (:require [clojure.java.jdbc :as sql])
+      (:import java.sql.DriverManager))
+
+    (def db {:classname "org.sqlite.JDBC",
+             :subprotocol "sqlite",
+             :subname "db.sq3"})
+
+Ahelyett, hogy valamilyen adatbáziskezelő programban összekattintgassuk az új adatbázisunkat, inkább egy függvénnyel hozzuk létre. Egy ilyen egyszerű adattáblánál ennek az előnye nem látszik, de ha sikeres lesz a program, és rengeteg helyen kell telepíteni, valamint az adatbázis adattáblák tucatjait tartalmazza, akkor ez az út jár kevesebb bonyodalommal. Nem megyünk bele az SQL nyelv rejtelmeibe, elég az tudni, hogy egy bejegyzésazonosítót, egy nevet, egy üzenetet és egy időpontot tárolunk le minden egyes bejegyzésnél:
+
+    (defn create-guestbook-table []
+      (sql/with-connection
+        db
+        (sql/create-table
+          :guestbook
+          [:id "INTEGER PRIMARY KEY AUTOINCREMENT"]
+          [:timestamp "TIMESTAMP DEFAULT CURRENT_TIMESTAMP"]
+          [:name "TEXT"]
+          [:message "TEXT"])
+        (sql/do-commands "CREATE INDEX timestamp_index ON guestbook (timestamp)")))
+
+Természetesen azért van adatbázisunk, hogy a tartalmát megjeleníthessük az oldalunkra odatévedőnek. Így kell egy függvény, mellyel kiolvashatjuk az adatbázis tartalmát. Aki az SQL-ben járatos, láthatja, hogy a bejegyzéseket a koruk szerint fogja sorbaállítani:
+
+    (defn read-guests []
+      (sql/with-connection
+        db
+        (sql/with-query-results res
+          ["SELECT * FROM guestbook ORDER BY timestamp DESC"]
+          (doall res))))
+          
+Természetesen az adatbázisból csak akkor nyerhetünk ki bármit is, ha oda raktunk is valamit, így kell egy függvény az adataink elmentéséhez is. A függvény csak két adatot vár a négyből, a másik kettő automatikusan kap értéket. Itt lehet látni, hogy szükség esetén a Clojure az alapjául szolgáló Java adottságait fel tudja használni:
+
+    defn save-message [name message]
+      (sql/with-connection
+        db
+        (sql/insert-values
+          :guestbook
+          [:name :message :timestamp]
+          [name message (new java.util.Date)])))
+
+Miután elmentettük a fájlunkat, vegyük használatba és hozzuk létre az adatbázist! Ehhez egy új terminált kell kinyitnunk a külső könyvtárban (ahol a ```project.clj``` is található), s ki kell adni a ```lein repl``` parancsot. Ezzel elindul a repl, ahol két utasításra lesz szükségünk. Az első betölti az előbb megírt fájlt, míg a második már innen futtatja az adatbázis generálást:
+
+    (use 'guestbook.models.db)
+    (create-guestbook-table)
+
+Ellenőrizhetjük, hogy valóban elkészült az adatbázisunk, és mehetünk tovább. (Aki ott volt a bemutatón, talán emlékszik, hogy az első sorból kimaradt az utolsó _s_ betű, s ez már elég, hogy ne lehessen kiadni a második utasítást.)
+
+## Adatbázis beüzemelése
+
+Térjünk vissza újra az ```src/guestbook/routes/home.clj``` fájlunkhoz! Szükségünk van az előbb megírt fájra, így hivatkozni kell rá a fájl elején (csak az utolsó sor módosítottuk):
+
+    (ns guestbook.routes.home
+      (:require [compojure.core :refer :all]
+                [guestbook.views.layout :as layout]
+                [hiccup.form :refer :all]
+                [guestbook.models.db :as db]))
+
+A ```show-guests``` függvény csak előre megadott mintaadatokat mutatott újra és újra. Itt az idő, hogy használja az adatbázist, így cseréljük le az alábbira:
+
+    (defn show-guests []
+      [:ul.guests
+        (for [{:keys [message name timestamp]} (db/read-guests)]
+          [:li
+            [:blockquote message]
+            [:p "-" [:cite name]]
+            [:time timestamp]])])
+
+Ha valaki szeretné, további formázással is kiegészíthetné ezt a felsorolást, bár inkább az oldalt megjelenítő CSS stílusok segítségével érdemes módosítani a kinézetét. (A dizájn módosítása már rendszerint egy más munkatárs feladata, így nem megyünk bele.)
+
+Feladatunk még a begépelt üzenetek mentése. Ehhez lényegében a korábbi ```println``` utasítást kell lecserélni a megfelelő függvény nevére (```db/save-message```) és már kész is működő üzenőfalunk:
+
+    (defn save-message [name message]
+      (cond
+        (empty? name)     (home name message "Some dummy forgot to leave a name")
+        (empty? message)  (home name message "Don't you have something to say?")
+        :else             (do
+                            (db/save-message name message)
+                            (home))))
+                           
+
