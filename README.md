@@ -1,6 +1,8 @@
 # LanyokNapja17
 A short introduction into web developement
 
+_Ez az oldal a DE IK 2017-es Lányok Napján megtartott megtartott előadás írott változata._
+
 Az alábbiakban Dmitri Sotnikov [Web Development with Clojure](https://pragprog.com/book/dswdcloj2/web-development-with-clojure-second-edition) könyve első fejezetének megfelelően haladunk.
 
 # Előkészítés
@@ -9,21 +11,21 @@ A szerver oldali programozásra több száz programozási nyelv közül is vála
 
 Természetesen mi is óriások vállán állunk, kész programkönyvtárakat használunk. Ezek összegyűjtésében, telepítésében segítséget nyújt egy aprócska kis program, a [Leinigen](https://leiningen.org/). Windows alá ezt legegyszerűbben a [https://djpowell.github.io/leiningen-win-installer/](https://djpowell.github.io/leiningen-win-installer/) oldalról telepíthetjük, akár rendszergazdai jogosultságok nélkül is. 
 
-A telepítés lezajlik pár perc alatt. Alapértelmezetten megkapunk egy terminált, ahol egyből ki is próbálhatjuk, hogy minden rendben működik:
+A telepítés lezajlik pár perc alatt. Alapértelmezetten megkapunk egy terminált, ahol egyből ki is próbálhatjuk, hogy minden rendben működik-e:
 
     (+ 1 2 3 4 5)
     
 Az alábbiakat begépelve ```15``` eredményt kell kapnunk, mert az ```1+2+3+4+5``` értékét számítottuk ki. A Clojure a Lisp nyelvek családjába tartozik, ahol az ```f(x,y)``` függvényhívást ```(f x y)``` módon kell leírnunk.
 
-Ha minden rendben ment, akkor Ctrl+D segítségével ki is léphetünk, mert más módon használjuk ezt a programot.
+Ha minden rendben ment, akkor Ctrl+D segítségével ki is léphetünk, mert más módon fogjuk használni ezt a programot.
 
-# Vendégkönyv 
-A programírás folyamatát egy vendégkönyv elkészítésén mutatjuk meg. Itt a látogató üzeneteket hagyhat az oldal tulajdonosának. 
+# Üzenőfal
+A programírás folyamatát egy üzenőfal/vendégkönyv elkészítésén mutatjuk meg. Itt a látogató üzeneteket hagyhat az oldal tulajdonosának. 
 
 Az egyes weblapok végén megszokott kommentek esetén fontos a kommentek összekapcsolódása, ki kinek a megjegyzésére válaszolt, ezért az bonyolultabb belső struktúrát feltételez. A vendégkönyv esetén csak egymást követik az egyes bejegyzések, nincs köztük kapcsolat. Egy-egy bejegyzés magából az üzenetből, a bejegyzés írójának nevéből, és egy dátumból fog állni. 
 
 ## Sablon használata
-A Leinigen több fajta sablont is ismer, ezek közül az adott feladathoz leginkább illőt kell használni. A sablonok lényege, hogy kilakul egy szabványos alkönyvtárrendszer, és így az adott fejlesztésben részt vevők bármelyike egyből megtalál mindent, nem kell keresgetni az egyes állományokat. Miután mi egy webes progamot készítenénk, a következő utatítást kell kiadnunk parancssorból (```cmd```):
+A Leinigen több fajta sablont is ismer, ezek közül az adott feladathoz leginkább illőt kell használni. A sablonok lényege, hogy kialakul egy szabványos alkönyvtárrendszer, és így az adott fejlesztésben részt vevők bármelyike egyből megtalál mindent, nem kell keresgetni az egyes állományokat. Miután mi egy webes programot készítenénk, a következő utatítást kell kiadnunk parancssorból (```cmd```):
 
     lein new compojure-app guestbook
     
@@ -39,20 +41,24 @@ Mindkét parancs indítása után a _lein_ letölti azokat a kisebb-nagyobb prog
 ## Az oldal átírása
 
 A sablon nyújtotta lehetőségeken túl kell lépni, hogy elérjük a célunkat. 
-Nem árt pár szót ejteni a generált alkönyvtárrendszerről. A _resources_ könyvtárba kerül az oldalak kinézetét befolyásoló minden fájl: a megjelenítendő képek, az oldalstílusokat meghatározó CSS állományok, illetve a kliens oldalon futó Javascript programocskák. Ha az elkészült programunkat valahol üzembe helyeznénk, és ehhez lefordítanánk és összecsomagolnánk, az a _target_ könyvtárba kerülne. Az _src_ könyvtárban található maga a forrás, amit hamarosan kiegészítünk, míg a _test_ alkönyvtárba kerülnek azok a különféle tesztek, melyekkel az elkészült programunk egyes részeit tesztelhetjük, megbizonyosodva, hogy egyes továbbfejlesztések nem rontottak-e el valami korábban még működőképes részt.
+Nem árt pár szót ejteni a generált alkönyvtárrendszerről. 
+* A _resources_ könyvtárba kerül az oldalak kinézetét befolyásoló minden fájl: a megjelenítendő képek, az oldalstílusokat meghatározó CSS állományok, illetve a kliens oldalon futó Javascript programocskák. 
+* Ha az elkészült programunkat valahol üzembe helyeznénk, és ehhez lefordítanánk és összecsomagolnánk, az a _target_ könyvtárba kerülne. 
+* Az _src_ könyvtárban található maga a forrás, amit hamarosan kiegészítünk. 
+* Végül a _test_ alkönyvtárba kerülnek azok a különféle tesztek, melyekkel az elkészült programunk egyes részeit tesztelhetjük, megbizonyosodva, hogy egyes továbbfejlesztések nem rontottak-e el valami korábban még működőképes részt.
 
-Lépjünk be a ```src/guestbook/routes``` könyvtárba. Itt található meg az egyes webcímekhez hozzákapcsolt funkcionalitás. Azaz nevezetesen ha csak a webszerverünk címét írnánk be (ami most ```localhos:3000```), akkor szeretnénk az üzeneteket látni. Mindez a ```home.clj``` fájlban van definiálva.  A fájl első három sora a felhasznált programkönyvtárakat adja meg, míg az utolsó kettő az előbb említett hozzárendelést adja meg. Nevezetesen, ha semmi nem szerepel az előbbi cím után, akkor a ```home``` függvényt kell végrehajtani. A korábbi kétsoros alakot cseréljük le az alábbira:
+Lépjünk be a ```src/guestbook/routes``` könyvtárba. Itt található meg az egyes webcímekhez kapcsolt funkcionalitás. Azaz nevezetesen ha csak a webszerverünk címét írnánk be (ami most ```localhos:3000```), akkor szeretnénk az üzeneteket látni. Mindez a ```home.clj``` fájlban van definiálva.  A fájl első három sora a felhasznált programkönyvtárakat adja meg, míg az utolsó kettő az előbb említett hozzárendelést adja meg. Nevezetesen, ha semmi nem szerepel az előbbi cím után, akkor a ```home``` függvényt kell végrehajtani. A korábbi kétsoros alakot cseréljük le az alábbira:
 
 
     (defn home []
       (layout/common 
-        [:h1 "Guestbook"]
-        [:p "Welcome to my guestbook"]
+        [:h1 "Üzenőfal"]
+        [:p "Üdvözlöm az üzenőfalamon"]
         [:hr]
         [:form
-          [:p "Name"]
+          [:p "Név"]
           [:input]
-          [:p "Message"]
+          [:p "Üzenet"]
           [:textarea {:rows 10 :cols 40}]]))
 
 Ha valaki tanult egy kis webszerkesztést, akkor felismer pár kulcsszót (h1, p, form, input, stb) az alábbi részben, bár itt nem kacsacsőrök között szerepel, mint egy HTML forrásban, sőt még lezáró tagok sem találhatóak. A Hiccup könyvtár lehetővé teszi az előbb látható speciális nyelv használatát, ami véleményem szerint sokkal kényelmesebb, mint egy sablonrendszer használata (mint például a [Smarty](http://www.smarty.net/), a [mustache](https://mustache.github.io/), a [Jade](https://www.npmjs.com/package/jade) vagy a [Jinja](http://jinja.pocoo.org/), hogy csak párat említsek a több száz közül).
@@ -73,8 +79,8 @@ Annak érdekében, hogy tesztelhessük az oldalunkat, elhelyezünk pár bejegyz�
     (defn show-guests []
       [:ul.guests
         (for [{:keys [message name timestamp]}
-               [{:message "Howdy" :name "Bob" :timestamp nil}
-                {:message "Hello" :name "Bob" :timestamp nil}]]
+               [{:message Szia" :name "Szabi" :timestamp nil}
+                {:message "Hello" :name "Hugó" :timestamp nil}]]
           [:li
             [:blockquote message] [:p "-" [:cite name]] [:time timestamp]])])
 
@@ -86,14 +92,14 @@ Annak érdekében, hogy az előbbi függvényt használatba vehessük, valamint,
 
     (defn home [& [name message error]]
       (layout/common 
-        [:h1 "Guestbook"]
-        [:p "Welcome to my guestbook"]
+        [:h1 "Üzenőfal"]
+        [:p "Üdvözlöm az üzenőfalamon!"]
         [:p error]
         (show-guests)
         [:hr]
         (form-to [:post "/"]
-          [:p "Name"] (text-field "name" name)
-          [:p "Message"] (text-area {:rows 10 :cols 40} "message" message)
+          [:p "Név"] (text-field "name" name)
+          [:p "Üzenet"] (text-area {:rows 10 :cols 40} "message" message)
           [:br]
           (submit-button "comment"))))
 
@@ -107,8 +113,8 @@ Ez a feldolgozó függvény még hiányzik, szúrjuk be a _home_ függvény és 
 
     (defn save-message [name message]
       (cond
-        (empty? name) (home name message "Some dummy forgot to leave a name")
-        (empty? message) (home name message "Don't you have something to say?")
+        (empty? name) (home name message "Valaki nem adta meg a nevét!")
+        (empty? message) (home name message "Mit szerettél volna üzenni?")
         :else
           (do
             (println name message)
@@ -144,7 +150,7 @@ Először is fel kell használnunk az előzőleg megadott könyvtárakat, majd m
              :subprotocol "sqlite",
              :subname "db.sq3"})
 
-Ahelyett, hogy valamilyen adatbáziskezelő programban összekattintgassuk az új adatbázisunkat, inkább egy függvénnyel hozzuk létre. Egy ilyen egyszerű adattáblánál ennek az előnye nem látszik, de ha sikeres lesz a program, és rengeteg helyen kell telepíteni, valamint az adatbázis adattáblák tucatjait tartalmazza, akkor ez az út jár kevesebb bonyodalommal. Nem megyünk bele az SQL nyelv rejtelmeibe, elég az tudni, hogy egy bejegyzésazonosítót, egy nevet, egy üzenetet és egy időpontot tárolunk le minden egyes bejegyzésnél:
+Ahelyett, hogy valamilyen adatbáziskezelő programban összekattintgassuk az új adatbázisunkat, inkább egy függvénnyel hozzuk létre. Egy ilyen egyszerű adattáblánál ennek az előnye nem látszik, de ha sikeres lesz a program, és rengeteg helyen kell telepíteni, valamint az adatbázis adattáblák tucatjait tartalmazza, akkor ez az út jár kevesebb bonyodalommal. Nem megyünk bele az SQL nyelv rejtelmeibe, most elég az tudni, hogy egy bejegyzésazonosítót, egy nevet, egy üzenetet és egy időpontot tárolunk le minden egyes bejegyzésnél:
 
     (defn create-guestbook-table []
       (sql/with-connection
@@ -215,4 +221,15 @@ Feladatunk még a begépelt üzenetek mentése. Ehhez lényegében a korábbi ``
                             (db/save-message name message)
                             (home))))
                            
+Egy kis gyakorlattal ez az egyszerű programocska közel félóra alatt elkészül. Még rá lehet fordítani öt percet, hogy a dátum olvasható formában jelenjen meg. S a saját gépünkről áttelepíthetjük egy valódi, bárhonnan elérhető szerverre.
 
+Egy nagyobb webes rendszer rendszerint ilyen kis programocskák tucatjait, százait tartalmazza, egy komplexebb adatbázist használva. Természetesen figyelni kell, hogy csak az arra [jogosultak](https://en.wikipedia.org/wiki/Authentication) érhessék el a rendszer egyes szolgáltatásait, és hogy az űrlapokba beírt adatok megfelelőek legyenek.
+
+# Olvasnivaló
+## Magyarul
+* [Fejlesztők bemutatkozása](http://egyperctech.reblog.hu/)
+* [ELTE Web-fejlesztés](http://webfejlesztes.inf.elte.hu/)
+* [Nagy Gusztáv könyve](http://web.progtanulo.hu/)
+* [ELTE-s magasabb szintű tárgyak](http://webprogramozas.inf.elte.hu)
+## Angolul
+* [Smashing Magazine](https://www.smashingmagazine.com) 
